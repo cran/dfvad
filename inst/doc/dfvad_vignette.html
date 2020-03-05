@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Shipei Zeng" />
+
+<meta name="date" content="2020-02-27" />
+
+<title>Using dfvad for Value Added Decomposition</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using dfvad for Value Added Decomposition</h1>
+<h4 class="author">Shipei Zeng</h4>
+<h4 class="date">2020-02-27</h4>
+
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>The package <code>dfvad</code> works for value added and productivity decompositions. Value added growth has been instrumental in our understanding of a large gap of economy performance over long terms, so we want to specify explanatory factors of value added growth. Diewert and Fox (2018), abbreviated as DF decomposition, have decomposed value added into five explanatory factors by assuming constant returns to scale. They are:</p>
+<ul>
+<li><p>technical progress</p></li>
+<li><p>inefficiency or efficiency depending on how we interpret it</p></li>
+<li><p>input mix which means how input prices affect the output by changing relative allocation of inputs</p></li>
+<li><p>net output prices</p></li>
+<li><p>and input quantities.</p></li>
+</ul>
+<p>This approach is highlighted because it uses a Free Disposal Hull approach – no convexity assumptions. And it rules out technical regress. This is a feature of this approach because other researchers may argue that technical regress is there, but since knowledge is there and cannot be diminished, there should be no technical regress but inefficiency. It also has the advantage that it does not involve any econometric estimation, and involves only observable data. Quite objective.</p>
+<p>The decomposition is more than analysing value added growth; we can specify the components of productivity growth by focusing on technical progress, efficiency and input mix.</p>
+</div>
+<div id="methodology" class="section level1">
+<h1>Methodology</h1>
+<div id="cost-constrained-value-added-function" class="section level2">
+<h2>Cost constrained value added function</h2>
+<p>Let’s get a closer look at how value added and productivity are decomposed. A cost constrained value added function is defined as the maximum value added subject to the constrains that a feasible input expenditure is equal to or less than the observed input expenditure: <span class="math display">\[\begin{equation*}
+R^{t}(p,w,x)=\max_{y,z} \{p\cdot y:(y,z)\in S^{t};w\cdot z\leqslant w\cdot x\}
+\end{equation*}\]</span> and a unit cost function is defined by minimizing the ratio of input values to output values: <span class="math display">\[\begin{equation*}
+c^{t}(w,p)=\min_{s} \left\{\dfrac{w\cdot x^{s}}{p\cdot y^{s}}:s=1,\cdots,t\right\}
+\end{equation*}\]</span></p>
+<p>Under the assumption of constant returns to scale, a sequential approach is adopted where past observations up to and including the current period are used to determine the technology set. This approach rules out technical regress with period by period accumulation: <span class="math display">\[\begin{equation*}
+\begin{split}
+R^{t}(p,w,x)&amp;=\max_{s}\left\{p\cdot y^{s}\dfrac{w\cdot x}{w \cdot x^{s}}: s=1, \cdots,t\right\}\\
+&amp;=\dfrac{w\cdot x}{c^{t}(w,p)}
+\end{split}
+\end{equation*}\]</span></p>
+</div>
+<div id="explanatory-factors" class="section level2">
+<h2>Explanatory factors</h2>
+<ul>
+<li>Net output price indexes:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\alpha (p^{t-1}, p^{t}, w, x, s)=\dfrac{R^{s}(p^{t}, w, x)}{R^{s}(p^{t-1}, w, x)}
+\end{equation*}\]</span></p>
+<ul>
+<li>Input quantity indexes:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\beta (x^{t-1}, x^{t}, w)=\dfrac{w\cdot x^{t}}{w\cdot x^{t-1}}
+\end{equation*}\]</span></p>
+<ul>
+<li>Input mix indexes:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\gamma (w^{t-1}, w^{t}, p, x, s)=\dfrac{R^{s}(p, w^{t}, x)}{R^{s}(p, w^{t-1}, x)}
+\end{equation*}\]</span></p>
+<ul>
+<li>Returns to scale:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+\delta (x^{t-1}, x^{t}, p, w, s)&amp;=\dfrac{R^{s}(p, w, x^{t})/R^{s}(p, w, x^{t-1})}{w\cdot x^{t}/w\cdot x^{t-1}}\\
+&amp;=1
+\end{split}
+\end{equation*}\]</span></p>
+<ul>
+<li>Growth in value added efficiency:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+e^{t}=\dfrac{p^{t}\cdot y^{t}}{R^{t}(p^{t},w^{t},x^{t})}\leqslant 1
+\end{equation*}\]</span> <span class="math display">\[\begin{equation*}
+\varepsilon ^{t}=\dfrac{e^{t}}{e^{t-1}}
+\end{equation*}\]</span></p>
+<ul>
+<li>Technical progress:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\tau (t-1, t, p, w, x)=\dfrac{R^{t}(p, w, x)}{R^{t-1}(p, w, x)}
+\end{equation*}\]</span></p>
+</div>
+<div id="decomposition" class="section level2">
+<h2>Decomposition</h2>
+<p>Straightforward algebra using the explanatory factors show that we have the following decomposition of the observed value added ratio: <span class="math display">\[\begin{equation*}
+\dfrac{p^{t}\cdot y^{t}}{p^{t-1}\cdot y^{t-1}}=\alpha^{t}\cdot \beta^{t}\cdot \gamma^{t}\cdot \varepsilon^{t}\cdot  \tau^{t}
+\end{equation*}\]</span></p>
+<p>Productivity growth can be defined as an index of output growth divided by an index of input growth: <span class="math display">\[\begin{equation*}
+\begin{split}
+TFPG^{t}&amp;=\dfrac{p^{t}\cdot y^{t}/p^{t-1}\cdot y^{t-1}}{\alpha^{t}\cdot \beta^{t}}\\
+&amp;=\gamma^{t}\cdot \varepsilon^{t}\cdot \tau^{t}
+\end{split}
+\end{equation*}\]</span></p>
+</div>
+<div id="weighted-average-approach" class="section level2">
+<h2>Weighted average approach</h2>
+<p>Two options are provided for multiple industries: aggregation prior to decomposition, or decomposition prior to aggregation. The weighted average approach focuses on the latter option. It uses weighted averages of the sectoral decompositions so that an approximate decomposition into explanatory components at the aggregate level can be available:</p>
+<ul>
+<li>Tornqvist explanatory factors: <span class="math display">\[  \lambda \in \{\alpha, \beta, \gamma, \varepsilon, \tau \} \]</span></li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\ln \lambda^{t\bullet}=\sum_{k=1}^{K}\dfrac{1}{2}(s^{kt}+s^{k, t-1})\ln \lambda^{kt}
+\end{equation*}\]</span></p>
+<ul>
+<li>Approximation of value relatives:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+\ln \left(\dfrac{v^{t}}{v^{t-1}}\right)&amp;\approx \sum_{k=1}^{K}\dfrac{1}{2}\left(s^{kt}+s^{k, t-1}\right)\ln \left(\dfrac{v^{kt}}{v^{k, t-1}}\right)\\
+&amp;=\sum_{k=1}^{K}\dfrac{1}{2}\left(s^{kt}+s^{k, t-1}\right)\ln \left(\alpha^{kt}\beta^{kt}\gamma^{kt}\varepsilon^{kt}\tau^{kt}\right)\\
+&amp;=\ln\alpha^{t\bullet}+\ln\beta^{t\bullet}+\ln\gamma^{t\bullet}+\ln\varepsilon^{t\bullet}+\ln\tau^{t\bullet}
+\end{split}
+\end{equation*}\]</span></p>
+</div>
+<div id="growth-values-and-level-values" class="section level2">
+<h2>Growth values and level values</h2>
+<p>Growth values are period to period growth factors. Level values are cumulated explanatory variables defined as follows.</p>
+<ul>
+<li>t=1:</li>
+</ul>
+<p><span class="math display">\[\begin{equation*}
+A^{1}=1,B^{1}=1,C^{1}=1, E^{1}=1, T^{1}=1
+\end{equation*}\]</span></p>
+<ul>
+<li>t&gt;1: <span class="math display">\[\begin{equation*}
+\begin{split}
+&amp;A^{t}=\alpha^{t}A^{t-1},B^{t}=\beta^{t}B^{t-1},C^{t}=\gamma^{t}C^{t-1}\\
+&amp;E^{t}=\varepsilon^{t}E^{t-1},T^{t}=\tau^{t}T^{t-1}
+\end{split}
+\end{equation*}\]</span></li>
+</ul>
+<p>Using cumulated explanatory factors, we have the levels decomposition for TFP:</p>
+<p><span class="math display">\[\begin{equation*}
+\begin{split}
+TFP^{t}&amp;=\dfrac{p^{t}\cdot y^{t}}{p^{1}\cdot y^{1}\cdot A^{t}\cdot B^{t}}\\
+&amp;=C^{t}E^{t}T^{t}
+\end{split}
+\end{equation*}\]</span></p>
+</div>
+</div>
+<div id="sample-data" class="section level1">
+<h1>Sample data</h1>
+<div id="mining" class="section level2">
+<h2><code>mining</code></h2>
+<p>A <code>mining</code> data set is enclosed as an example to run the function <code>value_decom()</code>. <code>mining</code> is constructed for the mining industry with data cubes from the Australia Bureau of Statistics (see Zeng et al., 2018). It consists of mining inputs and outputs adopted to demonstrate the decomposition of value added growth. Here is a glimpse of it:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">head</span>(mining)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="co">#&gt;   year        p2       w2       u2       y2       h2       x2</span></a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">#&gt; 1 1990 1.0000000 1.000000 1.000000 18217.00 5829.440 12387.56</span></a>
+<a class="sourceLine" id="cb1-4" title="4"><span class="co">#&gt; 2 1991 1.0287049 1.094077 1.092580 19248.48 5429.508 12686.21</span></a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co">#&gt; 3 1992 0.9797347 1.147789 1.084150 20130.96 4983.208 12916.41</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="co">#&gt; 4 1993 1.0163527 1.224992 1.099337 20331.52 4891.919 13345.71</span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co">#&gt; 5 1994 0.9762259 1.188242 1.012954 20686.81 5268.666 13756.35</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">#&gt; 6 1995 0.9608280 1.246250 1.045412 22165.26 5126.661 14260.32</span></a></code></pre></div>
+<p><code>year</code> is the time period column, <code>p2</code> is the output price, <code>w2</code> is the labour price, <code>u2</code> is the capital price, <code>y2</code> is the output quantity, <code>h2</code> is the labour quantity, and <code>x2</code> is the capital quantity.</p>
+</div>
+<div id="sector" class="section level2">
+<h2><code>sector</code></h2>
+<p>A <code>sector</code> data set is enclosed as an example to run the function <code>t_weight()</code>. <code>sector</code> is constructed for 12 selected industries in Australia with explanatory factors produced by running <code>value_decom()</code> on each industry and binding them by row (see Zeng et al., 2018). It consists of explanatory factors of value added decomposition and is adopted to demonstrate the aggregation over industries. Here is a glimpse of it:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">head</span>(sector)</a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="co">#&gt;   year         p        y     alpha      beta   epsilon     gamma      tau</span></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="co">#&gt; 1 1990 1.0000000 16999.00 1.0000000 1.0000000 1.0000000 1.0000000 1.000000</span></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="co">#&gt; 2 1991 0.7351368 17942.24 0.7351368 1.0025434 1.0000000 1.0000000 1.052810</span></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="co">#&gt; 3 1992 0.7592055 16990.13 1.0327405 0.9605183 0.9902470 0.9955678 1.000000</span></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="co">#&gt; 4 1993 0.8091997 17883.10 1.0658506 0.9917871 1.0098491 1.0025314 1.048270</span></a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="co">#&gt; 5 1994 0.8376509 18622.32 1.0351597 0.9989740 1.0000000 1.0000000 1.042405</span></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="co">#&gt; 6 1995 0.9402803 15893.13 1.1225205 0.9914021 0.8610543 0.9997592 1.000000</span></a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">#&gt;   industry</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co">#&gt; 1        1</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">#&gt; 2        1</span></a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="co">#&gt; 3        1</span></a>
+<a class="sourceLine" id="cb2-13" title="13"><span class="co">#&gt; 4        1</span></a>
+<a class="sourceLine" id="cb2-14" title="14"><span class="co">#&gt; 5        1</span></a>
+<a class="sourceLine" id="cb2-15" title="15"><span class="co">#&gt; 6        1</span></a></code></pre></div>
+<p><code>year</code> is the time period column, <code>p</code> is the output price, <code>y</code> is the output quantity, <code>alpha</code> is the net output price index, <code>beta</code> is the input quantity index, <code>gamma</code> is the input mix index, <code>epsilon</code> is the value added efficiency index, <code>tau</code> is the technical progress index, and <code>industry</code> is the industry code column.</p>
+</div>
+</div>
+<div id="examples" class="section level1">
+<h1>Examples</h1>
+<div id="decomposing-value-added-growth-into-explanatory-factors" class="section level2">
+<h2>Decomposing value added growth into explanatory factors</h2>
+<p><code>value_decom()</code> for decomposing nominal value added growth identifies the contributions from efficiency change, growth of primary inputs, changes in output and input prices, technical progress and returns to scale. Arguments required to decompose value added include <code>x</code>, <code>w</code>, <code>y</code>, <code>p</code>, <code>t</code> and <code>data</code>. <code>x</code> is a string indicating the quantity column, <code>w</code> is a string indicating the input price column, <code>y</code> is a string indicating the output quantity column, <code>p</code> is a string indicating the output price column, <code>t</code> is a string indicating the time period column, and <code>data</code> is a data frame containing the columns above. <code>x</code>, <code>w</code>, <code>y</code> and <code>p</code> can also be a vector of strings if there multiple inputs or outputs, and strings need to follow the same order. For example, in the <code>mining</code> data set where <code>h2</code> is the quantity of labour and <code>w2</code> is the price of labour, we need to put <code>x</code> as <code>c(&quot;h2&quot;,&quot;x2&quot;)</code> and <code>w</code> as <code>c(&quot;w2&quot;,&quot;u2&quot;)</code> so that <code>h2</code> and <code>w2</code> take the same position in the arguments.</p>
+<p><code>value_decom()</code> returns a list containing a growth-value table and a level-value table of explanatory factors for value added growth decomposition. It is sorted by the time period. The growth-value table can be extracted using the number index 1 or the sub-list name “growth”. The level-value table can be extracted using the number 2 or the sub-list name “level”.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="co"># Use the built-in dataset &quot;mining&quot;</span></a>
+<a class="sourceLine" id="cb3-2" title="2">table1 &lt;-<span class="st"> </span><span class="kw">value_decom</span>(<span class="kw">c</span>(<span class="st">&quot;h2&quot;</span>,<span class="st">&quot;x2&quot;</span>), <span class="kw">c</span>(<span class="st">&quot;w2&quot;</span>,<span class="st">&quot;u2&quot;</span>), <span class="st">&quot;y2&quot;</span>, <span class="st">&quot;p2&quot;</span>, <span class="st">&quot;year&quot;</span>, mining)[[<span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">head</span>(table1)</a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="co">#&gt;   period     value     alpha      beta     gamma efficiency   epsilon      tau</span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="co">#&gt; 1   1991 1.0869517 1.0287049 0.9944262 1.0000000  1.0000000 1.0000000 1.062544</span></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="co">#&gt; 2   1992 0.9960608 0.9523963 0.9874494 1.0000000  1.0000000 1.0000000 1.059140</span></a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="co">#&gt; 3   1993 1.0477108 1.0373754 1.0180111 0.9997303  0.9923619 0.9923619 1.000000</span></a>
+<a class="sourceLine" id="cb3-8" title="8"><span class="co">#&gt; 4   1994 0.9773035 0.9605188 1.0444275 0.9996838  0.9670585 0.9745018 1.000000</span></a>
+<a class="sourceLine" id="cb3-9" title="9"><span class="co">#&gt; 5   1995 1.0545680 0.9842271 1.0168128 0.9999874  1.0000000 1.0340636 1.019052</span></a>
+<a class="sourceLine" id="cb3-10" title="10"><span class="co">#&gt; 6   1996 1.1345729 1.0406754 1.0327427 1.0000000  1.0000000 1.0000000 1.055662</span></a>
+<a class="sourceLine" id="cb3-11" title="11"><span class="co">#&gt;        TFPG</span></a>
+<a class="sourceLine" id="cb3-12" title="12"><span class="co">#&gt; 1 1.0625440</span></a>
+<a class="sourceLine" id="cb3-13" title="13"><span class="co">#&gt; 2 1.0591398</span></a>
+<a class="sourceLine" id="cb3-14" title="14"><span class="co">#&gt; 3 0.9920943</span></a>
+<a class="sourceLine" id="cb3-15" title="15"><span class="co">#&gt; 4 0.9741937</span></a>
+<a class="sourceLine" id="cb3-16" title="16"><span class="co">#&gt; 5 1.0537516</span></a>
+<a class="sourceLine" id="cb3-17" title="17"><span class="co">#&gt; 6 1.0556623</span></a>
+<a class="sourceLine" id="cb3-18" title="18">table2 &lt;-<span class="st"> </span><span class="kw">value_decom</span>(<span class="kw">c</span>(<span class="st">&quot;h2&quot;</span>,<span class="st">&quot;x2&quot;</span>), <span class="kw">c</span>(<span class="st">&quot;w2&quot;</span>,<span class="st">&quot;u2&quot;</span>), <span class="st">&quot;y2&quot;</span>, <span class="st">&quot;p2&quot;</span>, <span class="st">&quot;year&quot;</span>, mining)[[<span class="dv">2</span>]]</a>
+<a class="sourceLine" id="cb3-19" title="19"><span class="kw">head</span>(table2)</a>
+<a class="sourceLine" id="cb3-20" title="20"><span class="co">#&gt;   period    value         A         B         C         E        T      TFP</span></a>
+<a class="sourceLine" id="cb3-21" title="21"><span class="co">#&gt; 1   1990 1.000000 1.0000000 1.0000000 1.0000000 1.0000000 1.000000 1.000000</span></a>
+<a class="sourceLine" id="cb3-22" title="22"><span class="co">#&gt; 2   1991 1.086952 1.0287049 0.9944262 1.0000000 1.0000000 1.062544 1.062544</span></a>
+<a class="sourceLine" id="cb3-23" title="23"><span class="co">#&gt; 3   1992 1.082670 0.9797347 0.9819455 1.0000000 1.0000000 1.125383 1.125383</span></a>
+<a class="sourceLine" id="cb3-24" title="24"><span class="co">#&gt; 4   1993 1.134325 1.0163527 0.9996314 0.9997303 0.9923619 1.125383 1.116486</span></a>
+<a class="sourceLine" id="cb3-25" title="25"><span class="co">#&gt; 5   1994 1.108580 0.9762259 1.0440425 0.9994142 0.9670585 1.125383 1.087673</span></a>
+<a class="sourceLine" id="cb3-26" title="26"><span class="co">#&gt; 6   1995 1.169073 0.9608280 1.0615958 0.9994016 1.0000000 1.146824 1.146138</span></a></code></pre></div>
+</div>
+<div id="aggregation-over-sectors-with-a-weighted-average-approach" class="section level2">
+<h2>Aggregation over sectors with a weighted average approach</h2>
+<p><code>t_weight()</code> follows a “bottom up” approach that uses weighted averages of the sectoral decompositions to provide an approximate decomposition into explanatory components at the aggregate level. Specifically, the Tornqvist index is adopted in the aggregation. Arguments required to aggregate explanatory factors include <code>y</code>, <code>p</code>, <code>id</code>, <code>t</code>, <code>alpha</code>, <code>beta</code>, <code>gamma</code>, <code>epsilon</code>, <code>tau</code> and <code>data</code>. <code>y</code> is a string indicating the output quantity column, <code>p</code> is a string indicating the output price column, <code>id</code> is a string indicating the industry column, <code>t</code> is a string indicating the time period column, <code>alpha</code>–<code>tau</code> are explanatory factors of value added decomposition, and <code>data</code> is a data frame containing the columns above. <code>y</code> and <code>p</code> can also be a vector of strings.</p>
+<p><code>t_weight</code> returns a list containing a growth-value table and a level-value table of explanatory factors for value added growth decomposition. It is sorted by the time period. The growth-value table can be extracted using the number index 1 or the sub-list name “growth”. The level-value table can be extracted using the number 2 or the sub-list name “level”.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="co"># Use the built-in dataset &quot;sector&quot;</span></a>
+<a class="sourceLine" id="cb4-2" title="2">table1 &lt;-<span class="st"> </span><span class="kw">t_weight</span>(<span class="st">&quot;y&quot;</span>, <span class="st">&quot;p&quot;</span>, <span class="st">&quot;industry&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;alpha&quot;</span>, <span class="st">&quot;beta&quot;</span>, <span class="st">&quot;gamma&quot;</span>, <span class="st">&quot;epsilon&quot;</span>, <span class="st">&quot;tau&quot;</span>, sector)[[<span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="kw">head</span>(table1)</a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co">#&gt;   period     value    alpha      beta     gamma   epsilon      tau      TFPG</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="co">#&gt; 1   1991 0.9951654 1.004989 0.9878890 0.9996087 0.9868727 1.016024 1.0023647</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="co">#&gt; 2   1992 1.0145281 1.015884 0.9869371 0.9987753 0.9962747 1.016905 1.0118834</span></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co">#&gt; 3   1993 1.0656435 1.034633 1.0128698 1.0002431 1.0011899 1.015434 1.0168858</span></a>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co">#&gt; 4   1994 1.0649234 1.007479 1.0291213 1.0001043 1.0029142 1.024013 1.0271072</span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="co">#&gt; 5   1995 1.0565961 1.020031 1.0378505 1.0010086 0.9871089 1.010072 0.9980697</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; 6   1996 1.0703334 1.019766 1.0212297 0.9998535 1.0097033 1.018044 1.0277682</span></a>
+<a class="sourceLine" id="cb4-11" title="11">table2 &lt;-<span class="st"> </span><span class="kw">t_weight</span>(<span class="st">&quot;y&quot;</span>, <span class="st">&quot;p&quot;</span>, <span class="st">&quot;industry&quot;</span>, <span class="st">&quot;year&quot;</span>, <span class="st">&quot;alpha&quot;</span>, <span class="st">&quot;beta&quot;</span>, <span class="st">&quot;gamma&quot;</span>, <span class="st">&quot;epsilon&quot;</span>, <span class="st">&quot;tau&quot;</span>, sector)[[<span class="dv">2</span>]]</a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="kw">head</span>(table2)</a>
+<a class="sourceLine" id="cb4-13" title="13"><span class="co">#&gt;   period     value        A         B         C         E        T      TFP</span></a>
+<a class="sourceLine" id="cb4-14" title="14"><span class="co">#&gt; 1   1990 1.0000000 1.000000 1.0000000 1.0000000 1.0000000 1.000000 1.000000</span></a>
+<a class="sourceLine" id="cb4-15" title="15"><span class="co">#&gt; 2   1991 0.9951654 1.004989 0.9878890 0.9996087 0.9868727 1.016024 1.002365</span></a>
+<a class="sourceLine" id="cb4-16" title="16"><span class="co">#&gt; 3   1992 1.0096232 1.020952 0.9749843 0.9983845 0.9831963 1.033200 1.014276</span></a>
+<a class="sourceLine" id="cb4-17" title="17"><span class="co">#&gt; 4   1993 1.0758984 1.056311 0.9875322 0.9986272 0.9843662 1.049147 1.031403</span></a>
+<a class="sourceLine" id="cb4-18" title="18"><span class="co">#&gt; 5   1994 1.1457494 1.064211 1.0162904 0.9987313 0.9872349 1.074340 1.059361</span></a>
+<a class="sourceLine" id="cb4-19" title="19"><span class="co">#&gt; 6   1995 1.2105943 1.085528 1.0547575 0.9997387 0.9745083 1.085161 1.057317</span></a></code></pre></div>
+</div>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<p>Diewert, W. E. and Fox, K. J. (2018). Decomposing value added growth into explanatory factors. In The Oxford Handbook of Productivity Analysis, chapter 19, page 625–662. Oxford University Press: New York.</p>
+<p>Zeng, S., Parsons, S., Diewert, W. E. and Fox, K. J. (2018). Industry and state level value added and productivity decompositions. Presented in EMG Worshop 2018, Sydney.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
