@@ -23,6 +23,23 @@ install it, `install_github` from the `devtools` package can be helpful.
 devtools::install_github("shipei-zeng/dfvad")
 ```
 
+If error messages show that the URL cannot be opened, please set the
+download option before installing it.
+
+``` r
+options(download.file.method = "libcurl")
+```
+
+If error messages show that schannel failed to receive handshake, please
+delete the previous package before updating it.
+
+It has also been uploaded to the CRAN repository, which can be
+downloaded using:
+
+``` r
+install.packages("dfvad")
+```
+
 ## Usage
 
 `value_decom()` for decomposing nominal value added growth identifies
@@ -119,4 +136,4 @@ plot_out <- ggplot(df_cmpt_tidy) + geom_bar(aes(x=year, y=value, fill=variable),
 print(plot_out)
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="60%" />
+<img src="man/figures/README-unnamed-chunk-7-1.png" width="60%" />
